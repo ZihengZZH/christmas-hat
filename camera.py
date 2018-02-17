@@ -1,0 +1,57 @@
+# camera.py
+
+import numpy as np
+import cv2
+import dlib
+
+
+class VideoCamera(object):
+
+    # Constructor
+    def __init__(self):
+        self.video = cv2.VideoCapture(1)
+        # Using OpenCV to open web-camera
+        # Notice the index of camera
+
+        # loading dlib's Hog Based face detector
+        self.face_detector = dlib.get_frontal_face_detector()
+        # loading dlib's 68 points-shape-predictor
+        self.landmark_predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
+
+
+    # Destructor
+    def __del__(self):
+        self.video.release()
+
+
+    # Function for creating landmark coordinate list
+    def land2coords(self,landmarks,dtype="int"):
+        coords = np.zeros((68,2), dtype=dtype)
+        for i in range(0, 68):
+            coords[i] = (landmarks.part(i).x, landmarks.part(i).y)
+        return coords
+
+
+    def get_frame(self):
+        success, image = self.video.read()
+        image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # detect faces
+        face_boundaries = self.face_detector(image_gray, 0)
+
+        for (enum, face) in enumerate(face_boundaries):
+            x = face.left()
+            y = face.top()
+            w = face.right() - x
+            h = face.bottom() - y
+
+            # predict and draw landmarks
+            landmarks = self.landmark_predictor(image_gray, face)
+            # convert co-ordinates to NumPy array
+            landmarks = self.land2coords(landmarks)
+            for (a,b) in landmarks:
+                cv2.circle(image, (a,b), 2, (0,255,0), -1)
+
+        ret, jpg = cv2.imencode('.jpg', image)
+        return jpg.tobytes()
+
