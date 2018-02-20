@@ -1,5 +1,6 @@
 # camera.py
 
+import math
 import numpy as np
 import cv2
 import dlib
@@ -17,6 +18,7 @@ class VideoCamera(object):
         self.face_detector = dlib.get_frontal_face_detector()
         # loading dlib's 68 points-shape-predictor
         self.landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+        self.hat = cv2.imread("hats/01.png")
 
     # Destructor
     def __del__(self):
@@ -28,6 +30,29 @@ class VideoCamera(object):
         for i in range(0, 68):
             coords[i] = (landmarks.part(i).x, landmarks.part(i).y)
         return coords
+
+    # Function for overlaying the hat
+    def transparent_overlay(self, src, overlay, pos=(0, 0), scale=1):
+        """
+        :param src:  input color background image
+        :param overlay: transparent image (BGRA)
+        :param pos: position where the image to be built
+        :param scale: scale factor of transparent image
+        :return: resultant image
+        """
+        overlay = cv2.resize(overlay, (0, 0), fx=scale, fy=scale)
+        h, w, _ = overlay.shape       # size of foreground
+        rows, cols, _ = src.shape     # size of background
+        y, x = pos[0], pos[1]       # position of overlay image
+
+        # loop over all pixels and apply the blending equation
+        for i in range(h):
+            for j in range(w):
+                if x+i >= rows or y+j >= cols:
+                    continue
+                alpha = float(overlay[i][j][3]/255.0)   # read the alpha channel
+                src[x+i][y+j] = alpha*overlay[i][j][:3]+(1-alpha)*src[x+i][y+j]
+        return src
 
     # Function for getting frame and returning to flask
     def get_frame(self):
@@ -65,5 +90,12 @@ class VideoCamera(object):
 
         cv2.line(frame, (a1, 2*b1-b3), (a2, 2*b2-b4), (255, 0, 0), 3)
         # the blue line is where a hat will be placed
+
+        length = math.sqrt(pow(a2-a1, 2)+pow(2*b2-b4-2*b1+b3, 2))
+        w, h = self.hat.shape[:2]
+        hat_new = cv2.resize(self.hat, (int(length), int(length*h/w)),interpolation=cv2.INTER_CUBIC)
+        w_new, h_new = hat_new.shape[:2]
+        print(w,h,w_new,h_new)
+
 
         return frame
