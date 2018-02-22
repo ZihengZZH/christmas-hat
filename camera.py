@@ -20,6 +20,9 @@ class VideoCamera(object):
         self.landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
         self.hat = cv2.imread("hats/01.png")
         self.visual = True
+        self.angle_radian = 0
+        self.length = 0
+        self.position = None
 
     # Destructor
     def __del__(self):
@@ -56,16 +59,16 @@ class VideoCamera(object):
         return src
 
     # Function for rotating the image
-    def rotate_about_center(self, src, angle, scale=1.):
+    def rotate_about_center(self, src, rangle, scale=1.):
         """
         :param src: input color image
-        :param angle: input angle in degree
+        :param angle: input angle in radian
         :param scale: scale factor for rotation image
         :return:
         """
         w = src.shape[1]
         h = src.shape[0]
-        rangle = np.deg2rad(angle)  # angle in radians (x*pi/180)
+        angle = np.rad2deg(rangle)
 
         # calculate new image width and height
         nw = (abs(np.sin(rangle)*h) + abs(np.cos(rangle)*w)) * scale
@@ -102,44 +105,53 @@ class VideoCamera(object):
             landmarks = self.land2coords(landmarks)
             for (a, b) in landmarks:
                 cv2.circle(image, (a, b), 2, (0, 255, 0), -1)
-            image = self.get_pose(image, landmarks)
-            image = self.add_hat(image, landmarks)
+
+            self.get_pose(image, landmarks)
+            hat_rotate = self.rotate_about_center(self.hat, self.angle_radian)
+            image = self.add_hat(image, hat_rotate)
 
         ret, jpg = cv2.imencode('.jpg', image)
         return jpg.tobytes()
 
-    # Function for getting head pose
+    # Function for getting head pose / position for hat, and resizing the hat with length
     def get_pose(self, frame, landmarks):
-        # 27th, 28th, 29th, 30th
-        (x1, y1) = landmarks[27]
-        (x2, y2) = landmarks[28]
-        (x3, y3) = landmarks[29]
-        (x4, y4) = landmarks[30]
-
-        if self.visual:
-            cv2.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            cv2.line(frame, (x2, y2), (x3, y3), (255, 0, 0), 2)
-            cv2.line(frame, (x3, y3), (x4, y4), (255, 0, 0), 2)
-
-        return frame
-
-    # Function for adding christmas hat
-    # LONG WAT TO GO
-    def add_hat(self, frame, landmarks):
         # 19th and 24th points
         (a1, b1) = landmarks[19]
         (a2, b2) = landmarks[24]
         (a3, b3) = landmarks[38]
         (a4, b4) = landmarks[43]
 
+        # 27th, 28th, 29th, 30th points
+        (x1, y1) = landmarks[27]
+        (x2, y2) = landmarks[28]
+        (x3, y3) = landmarks[29]
+        (x4, y4) = landmarks[30]
+
+        w, h = self.hat.shape[:2]
+
         if self.visual:
             cv2.line(frame, (a1, 2*b1-b3), (a2, 2*b2-b4), (255, 0, 0), 2)
             # the blue line is where a hat will be placed
 
-        length = math.sqrt(pow(a2-a1, 2)+pow(2*b2-b4-2*b1+b3, 2))
-        w, h = self.hat.shape[:2]
-        hat_new = cv2.resize(self.hat, (int(length), int(length*h/w)),interpolation=cv2.INTER_CUBIC)
-        w_new, h_new = hat_new.shape[:2]
-        #print(w, h, w_new, h_new)
+            cv2.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+            cv2.line(frame, (x2, y2), (x3, y3), (255, 0, 0), 2)
+            cv2.line(frame, (x3, y3), (x4, y4), (255, 0, 0), 2)
+            cv2.circle(frame, (a1, 2*b1-b3), 1, (0, 0, 255))
+
+        self.angle_radian = np.arctan((y4-y1)/(x4-x1))
+        self.length = math.sqrt(pow(a2-a1, 2)+pow(2*b2-b4-2*b1+b3, 2))
+        self.position = (a1, 2*b1-b3)
+        self.hat = cv2.resize(self.hat, (int(self.length), int(self.length*h/w)), interpolation=cv2.INTER_CUBIC)
+        return
+
+    # Function for adding christmas hat
+    def add_hat(self, frame, hat):
+
+        # TUPLE OBJECT HAS NO ATTRIBUTE SHAPE
+        w, h = hat.shape[:2]
+        x, y = self.position.x, self.position.y
+
+        result = self.transparentOverlay(frame[x:x+w, y:y+h], hat, self.position)
+        frame[x:x+w, y:y+h] = result
 
         return frame
