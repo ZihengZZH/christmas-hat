@@ -54,7 +54,7 @@ class VideoCamera(object):
             for j in range(w):
                 if x+i >= rows or y+j >= cols:
                     continue
-                alpha = float(overlay[i][j][3]/255.0)   # read the alpha channel
+                alpha = float(overlay[i][j][2]/255.0)   # read the alpha channel
                 src[x+i][y+j] = alpha*overlay[i][j][:3]+(1-alpha)*src[x+i][y+j]
         return src
 
@@ -103,12 +103,14 @@ class VideoCamera(object):
             landmarks = self.landmark_predictor(image_gray, face)
             # convert co-ordinates to NumPy array
             landmarks = self.land2coords(landmarks)
-            for (a, b) in landmarks:
-                cv2.circle(image, (a, b), 2, (0, 255, 0), -1)
+
+            if self.visual:
+                for (a, b) in landmarks:
+                    cv2.circle(image, (a, b), 2, (0, 255, 0), -1)
 
             self.get_pose(image, landmarks)
-            hat_rotate = self.rotate_about_center(self.hat, self.angle_radian)
-            image = self.add_hat(image, hat_rotate)
+            hat_rotate, nw, nh = self.rotate_about_center(self.hat, self.angle_radian)
+            image = self.add_hat(image, hat_rotate, nw, nh)
 
         ret, jpg = cv2.imencode('.jpg', image)
         return jpg.tobytes()
@@ -145,13 +147,15 @@ class VideoCamera(object):
         return
 
     # Function for adding christmas hat
-    def add_hat(self, frame, hat):
+    def add_hat(self, frame, hat, nw, nh):
 
-        # TUPLE OBJECT HAS NO ATTRIBUTE SHAPE
-        w, h = hat.shape[:2]
-        x, y = self.position.x, self.position.y
+        w, h = frame.shape[:2]
+        x, y = self.position[0], self.position[1]
+        w_hat, h_hat = hat.shape[:2]
+        print(w_hat, nw, h_hat, nh)
 
-        result = self.transparentOverlay(frame[x:x+w, y:y+h], hat, self.position)
-        frame[x:x+w, y:y+h] = result
+        if x <= (w-nw) and y >= nh:
+            result = self.transparent_overlay(frame[x:x+nw, y-nh:y], hat, self.position)
+            frame[x:x+nw, y-nh:y] = result
 
         return frame
