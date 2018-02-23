@@ -18,8 +18,8 @@ class VideoCamera(object):
         self.face_detector = dlib.get_frontal_face_detector()
         # loading dlib's 68 points-shape-predictor
         self.landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
-        self.hat = cv2.imread("hats/01.png")
-        self.visual = True
+        self.hat = cv2.imread("hats/01.png", cv2.IMREAD_UNCHANGED)
+        self.visual = False
         self.angle_radian = 0
         self.length = 0
         self.position = None
@@ -54,7 +54,7 @@ class VideoCamera(object):
             for j in range(w):
                 if x+i >= rows or y+j >= cols:
                     continue
-                alpha = float(overlay[i][j][2]/255.0)   # read the alpha channel
+                alpha = float(overlay[i][j][3]/255.0)   # read the alpha channel
                 src[x+i][y+j] = alpha*overlay[i][j][:3]+(1-alpha)*src[x+i][y+j]
         return src
 
@@ -89,6 +89,7 @@ class VideoCamera(object):
     def get_frame(self):
         success, image = self.video.read()
         image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        self.hat = cv2.imread("hats/01.png", cv2.IMREAD_UNCHANGED)
 
         # detect faces
         face_boundaries = self.face_detector(image_gray, 0)
@@ -138,24 +139,24 @@ class VideoCamera(object):
             cv2.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
             cv2.line(frame, (x2, y2), (x3, y3), (255, 0, 0), 2)
             cv2.line(frame, (x3, y3), (x4, y4), (255, 0, 0), 2)
-            cv2.circle(frame, (a1, 2*b1-b3), 1, (0, 0, 255))
+            cv2.circle(frame, (a1, 2*b1-b3), 4, (0, 0, 255))
 
-        self.angle_radian = np.arctan((y4-y1)/(x4-x1))
+        self.angle_radian = np.arctan((x4-x1)/(y4-y1))  # NOTE THE ORIENTATION
         self.length = math.sqrt(pow(a2-a1, 2)+pow(2*b2-b4-2*b1+b3, 2))
         self.position = (a1, 2*b1-b3)
-        self.hat = cv2.resize(self.hat, (int(self.length), int(self.length*h/w)), interpolation=cv2.INTER_CUBIC)
+        self.hat = cv2.resize(self.hat, (int(self.length), int(self.length*h/w)))
         return
 
     # Function for adding christmas hat
     def add_hat(self, frame, hat, nw, nh):
 
         w, h = frame.shape[:2]
-        x, y = self.position[0], self.position[1]
-        w_hat, h_hat = hat.shape[:2]
-        print(w_hat, nw, h_hat, nh)
+        y, x = self.position[0], self.position[1]
 
-        if x <= (w-nw) and y >= nh:
-            result = self.transparent_overlay(frame[x:x+nw, y-nh:y], hat, self.position)
-            frame[x:x+nw, y-nh:y] = result
+        if self.visual:
+            cv2.rectangle(frame, (x, y), (x+nw, y-nh), (255, 0, 0), 3)
+
+        result = self.transparent_overlay(frame[x-nw*2:x, y:y+nh*2], hat, (0, 0), 2)
+        frame[x-nw*2:x, y:y+nh*2] = result
 
         return frame

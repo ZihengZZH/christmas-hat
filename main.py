@@ -23,3 +23,11 @@ def video_feed():
 if __name__ == '__main__':
     # app.run(host='0,0,0,0', debug=True)
     app.run()
+
+
+'''
+23th Feb    TO DO
+            position of hat
+            size of hat
+            FPS and computation
+'''
