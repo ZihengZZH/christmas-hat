@@ -3,9 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <title>DEMO</title>
+    <style>
+    img {
+        display:block;
+        margin-left:auto;
+        margin-right:auto
+    }
+    </style>
 </head>
-<body>
-    <h1>Christmas hats web-app</h1>
-    <img src="{{ url_for('video_feed') }}">
+<body style="background-color:rgb(46,115,180)">
+    <h1 style="font-family:Arial;font-size:40px;color:white" align="center">
+        Christmas-Hats Web-App
+    </h1>
+    <p style="font-family:Arial;font-size:20px;color:white" align="center">
+        Open your web-camera to see you with a lovely christmas hat
+    </p>
+    <img src="{{ url_for('video_feed') }}" style="width:50%">
 </body>
 </html>

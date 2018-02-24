@@ -18,8 +18,8 @@ class VideoCamera(object):
         self.face_detector = dlib.get_frontal_face_detector()
         # loading dlib's 68 points-shape-predictor
         self.landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
-        self.hat = cv2.imread("hats/01.png", cv2.IMREAD_UNCHANGED)
-        self.visual = False
+        self.hat = cv2.imread("hats/02.png", cv2.IMREAD_UNCHANGED)
+        self.visual = True
         self.angle_radian = 0
         self.length = 0
         self.position = None
@@ -89,7 +89,7 @@ class VideoCamera(object):
     def get_frame(self):
         success, image = self.video.read()
         image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        self.hat = cv2.imread("hats/01.png", cv2.IMREAD_UNCHANGED)
+        self.hat = cv2.imread("hats/02.png", cv2.IMREAD_UNCHANGED)
 
         # detect faces
         face_boundaries = self.face_detector(image_gray, 0)
@@ -111,7 +111,7 @@ class VideoCamera(object):
 
             self.get_pose(image, landmarks)
             hat_rotate, nw, nh = self.rotate_about_center(self.hat, self.angle_radian)
-            image = self.add_hat(image, hat_rotate, nw, nh)
+            #image = self.add_hat(image, hat_rotate, nw, nh)
 
         ret, jpg = cv2.imencode('.jpg', image)
         return jpg.tobytes()
