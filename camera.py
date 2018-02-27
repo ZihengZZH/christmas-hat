@@ -10,7 +10,7 @@ class VideoCamera(object):
 
     # Constructor
     def __init__(self):
-        self.video = cv2.VideoCapture(1)
+        self.video = cv2.VideoCapture(0)
         # Using OpenCV to open web-camera
         # Notice the index of camera
 

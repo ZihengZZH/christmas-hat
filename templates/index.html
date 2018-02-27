@@ -9,6 +9,25 @@
         margin-left:auto;
         margin-right:auto
     }
+    button {
+        background-color: #4CAF50;
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        width: 50%;
+        border-radius: 4px;
+        -webkit-transition-duration: 0.4s; /* Safari */
+        transition-duration: 0.4s;
+    }
+    div{
+        text-align: center;
+    }
     </style>
 </head>
 <body style="background-color:rgb(46,115,180)">
@@ -16,8 +35,14 @@
         Christmas-Hats Web-App
     </h1>
     <p style="font-family:Arial;font-size:20px;color:white" align="center">
-        Open your web-camera to see you with a lovely christmas hat
+        Open your web-camera to see yourself with a lovely christmas hat
     </p>
-    <img src="{{ url_for('video_feed') }}" style="width:50%">
+    <img id="camera" src="{{ url_for('static', filename='templates/signal.png') }}" style="width:50%">
+    <div>
+        <button onclick="document.getElementById('camera').src='{{ url_for('video_feed') }}'">
+            OPEN YOUR WEB-CAMERA
+        </button>
+    </div>
+
 </body>
 </html>
