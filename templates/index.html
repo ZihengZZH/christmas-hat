@@ -28,21 +28,31 @@
     div{
         text-align: center;
     }
+
     </style>
+
 </head>
 <body style="background-color:rgb(46,115,180)">
-    <h1 style="font-family:Arial;font-size:40px;color:white" align="center">
-        Christmas-Hats Web-App
-    </h1>
-    <p style="font-family:Arial;font-size:20px;color:white" align="center">
-        Open your web-camera to see yourself with a lovely christmas hat
-    </p>
-    <img id="camera" src="{{ url_for('static', filename='templates/signal.png') }}" style="width:50%">
-    <div>
-        <button onclick="document.getElementById('camera').src='{{ url_for('video_feed') }}'">
-            OPEN YOUR WEB-CAMERA
-        </button>
-    </div>
+<h1 style="font-family:Arial;font-size:40px;color:white" align="center">
+    Christmas-Hat Web-App
+</h1>
+<p style="font-family:Arial;font-size:20px;color:white" align="center">
+    Open your web-camera to see yourself with a lovely christmas hat
+</p>
+<img id="camera" src="{{ url_for('static', filename='templates/signal.png') }}" style="width:50%">
+<div>
+    <button onclick="document.getElementById('camera').src='{{ url_for('video_feed') }}'">
+        OPEN YOUR WEB-CAMERA
+    </button>
+</div>
+
+<div style="margin-left=auto; margin-right=auto">
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+    </form>
+</div>
+
+
 
 </body>
 </html>

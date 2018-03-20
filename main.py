@@ -1,9 +1,17 @@
 # main.py
 
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, request
+from scipy import misc
 from camera import VideoCamera
 
 app = Flask(__name__)
+
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    f = request.files['file']
+    img = misc.imread(f)
+    return img
 
 @app.route('/')
 def index():
@@ -24,10 +32,3 @@ if __name__ == '__main__':
     # app.run(host='0,0,0,0', debug=True)
     app.run()
 
-
-'''
-23th Feb    TO DO
-            position of hat
-            size of hat
-            FPS and computation
-'''

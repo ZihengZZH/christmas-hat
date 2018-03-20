@@ -19,7 +19,7 @@ class VideoCamera(object):
         # loading dlib's 68 points-shape-predictor
         self.landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
         self.hat = cv2.imread("hats/02.png", cv2.IMREAD_UNCHANGED)
-        self.visual = True
+        self.visual = False
         self.angle_radian = 0
         self.length = 0
         self.position = None
@@ -62,7 +62,7 @@ class VideoCamera(object):
     def rotate_about_center(self, src, rangle, scale=1.):
         """
         :param src: input color image
-        :param angle: input angle in radian
+        :param rangle: input angle in radian
         :param scale: scale factor for rotation image
         :return:
         """
@@ -111,16 +111,16 @@ class VideoCamera(object):
 
             self.get_pose(image, landmarks)
             hat_rotate, nw, nh = self.rotate_about_center(self.hat, self.angle_radian)
-            #image = self.add_hat(image, hat_rotate, nw, nh)
+            image = self.add_hat(image, hat_rotate, nw, nh)
 
         ret, jpg = cv2.imencode('.jpg', image)
         return jpg.tobytes()
 
     # Function for getting head pose / position for hat, and resizing the hat with length
     def get_pose(self, frame, landmarks):
-        # 19th and 24th points
-        (a1, b1) = landmarks[19]
-        (a2, b2) = landmarks[24]
+        # 18th and 25th points
+        (a1, b1) = landmarks[18]
+        (a2, b2) = landmarks[25]
         (a3, b3) = landmarks[38]
         (a4, b4) = landmarks[43]
 
