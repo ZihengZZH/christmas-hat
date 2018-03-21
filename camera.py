@@ -6,27 +6,35 @@ import cv2
 import dlib
 
 
+hat_file = "./hats/02.png"
+landmarks_file = "./database/shape_predictor_68_face_landmarks.dat"
+
 class VideoCamera(object):
 
     # Constructor
-    def __init__(self):
-        self.video = cv2.VideoCapture(0)
-        # Using OpenCV to open web-camera
-        # Notice the index of camera
+    def __init__(self, open_cam=True, visual=False):
+        if open_cam:
+            self.video = cv2.VideoCapture(1)
+            self.pic = False
+            # Using OpenCV to open web-camera
+            # Notice the index of camera
+        else:
+            self.pic = True
 
         # loading dlib's Hog Based face detector
         self.face_detector = dlib.get_frontal_face_detector()
         # loading dlib's 68 points-shape-predictor
-        self.landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
-        self.hat = cv2.imread("hats/02.png", cv2.IMREAD_UNCHANGED)
-        self.visual = False
+        self.landmark_predictor = dlib.shape_predictor(landmarks_file)
+        self.hat = cv2.imread(hat_file, cv2.IMREAD_UNCHANGED)
+        self.visual = visual
         self.angle_radian = 0
         self.length = 0
         self.position = None
 
     # Destructor
     def __del__(self):
-        self.video.release()
+        if not self.pic:
+            self.video.release()
 
     # Function for creating landmark coordinate list
     def land2coords(self, landmarks, dtype="int"):
@@ -44,7 +52,8 @@ class VideoCamera(object):
         :param scale: scale factor of transparent image
         :return: resultant image
         """
-        overlay = cv2.resize(overlay, (0, 0), fx=scale, fy=scale)
+        height, width = src.shape[:2]
+        overlay = cv2.resize(overlay, (width, height), interpolation=cv2.INTER_CUBIC)
         h, w, _ = overlay.shape       # size of foreground
         rows, cols, _ = src.shape     # size of background
         y, x = pos[0], pos[1]       # position of overlay image
@@ -84,12 +93,12 @@ class VideoCamera(object):
         rot_mat[1, 2] += rot_move[1]
         return cv2.warpAffine(src, rot_mat, (int(math.ceil(nw)), int(math.ceil(nh)))), int(nw), int(nh)
 
-    # Main function
+    # Main function for video stream
     # Function for getting frame and returning to flask
     def get_frame(self):
         success, image = self.video.read()
         image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        self.hat = cv2.imread("hats/02.png", cv2.IMREAD_UNCHANGED)
+        self.hat = cv2.imread(hat_file, cv2.IMREAD_UNCHANGED)
 
         # detect faces
         face_boundaries = self.face_detector(image_gray, 0)
@@ -116,6 +125,38 @@ class VideoCamera(object):
         ret, jpg = cv2.imencode('.jpg', image)
         return jpg.tobytes()
 
+    # Main function for single picture
+    # Function for saving modified picture
+    def get_pic(self, filename):
+        img = cv2.imread('./uploads/'+filename)
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        self.hat = cv2.imread(hat_file, cv2.IMREAD_UNCHANGED)
+
+        # detect faces
+        face_boundaries = self.face_detector(img_gray, 0)
+
+        for (enum, face) in enumerate(face_boundaries):
+            x = face.left()
+            y = face.top()
+            w = face.right() - x
+            h = face.bottom() - y
+
+            # predict and draw landmarks
+            landmarks = self.landmark_predictor(img_gray, face)
+            # convert co-ordinates to NumPy array
+            landmarks = self.land2coords(landmarks)
+
+            if self.visual:
+                for (a, b) in landmarks:
+                    cv2.circle(img, (a, b), 2, (0, 255, 0), -1)
+
+            self.get_pose(img, landmarks)
+            hat_rotate, nw, nh = self.rotate_about_center(self.hat, self.angle_radian)
+            img = self.add_hat(img, hat_rotate, nw, nh)
+
+        cv2.imwrite('./uploads/hat_' + filename, img)
+        return
+
     # Function for getting head pose / position for hat, and resizing the hat with length
     def get_pose(self, frame, landmarks):
         # 18th and 25th points
@@ -132,18 +173,19 @@ class VideoCamera(object):
 
         w, h = self.hat.shape[:2]
 
+        # due to blanks in hat image, hat rectangle may change a little bit
         if self.visual:
-            cv2.line(frame, (a1, 2*b1-b3), (a2, 2*b2-b4), (255, 0, 0), 2)
+            cv2.line(frame, (a1, b1), (a2, b2), (255, 0, 0), 2)
             # the blue line is where a hat will be placed
 
             cv2.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
             cv2.line(frame, (x2, y2), (x3, y3), (255, 0, 0), 2)
             cv2.line(frame, (x3, y3), (x4, y4), (255, 0, 0), 2)
-            cv2.circle(frame, (a1, 2*b1-b3), 4, (0, 0, 255))
+            cv2.circle(frame, (a1, b1), 4, (0, 0, 255))
 
         self.angle_radian = np.arctan((x4-x1)/(y4-y1))  # NOTE THE ORIENTATION
-        self.length = math.sqrt(pow(a2-a1, 2)+pow(2*b2-b4-2*b1+b3, 2))
-        self.position = (a1, 2*b1-b3)
+        self.length = math.sqrt(pow(a2-a1, 2)+pow(b2-b1, 2))
+        self.position = (a1, b1)
         self.hat = cv2.resize(self.hat, (int(self.length), int(self.length*h/w)))
         return
 
@@ -151,12 +193,12 @@ class VideoCamera(object):
     def add_hat(self, frame, hat, nw, nh):
 
         w, h = frame.shape[:2]
-        y, x = self.position[0], self.position[1]
+        (x, y) = self.position
 
         if self.visual:
             cv2.rectangle(frame, (x, y), (x+nw, y-nh), (255, 0, 0), 3)
 
-        result = self.transparent_overlay(frame[x-nw*2:x, y:y+nh*2], hat, (0, 0), 2)
-        frame[x-nw*2:x, y:y+nh*2] = result
+        result = self.transparent_overlay(frame[x-nw:x, y:y+nh], hat, (0, 0), 1)
+        frame[x-nw:x, y:y+nh] = result
 
         return frame

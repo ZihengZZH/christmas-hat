@@ -25,9 +25,18 @@
         -webkit-transition-duration: 0.4s; /* Safari */
         transition-duration: 0.4s;
     }
+    input {
+        background-color: #4CBEBB;
+        border: none;
+        color: white;
+        padding: 10px 10px;
+        text-align: center;
+        font-size: 14px;
+    }
     div{
         text-align: center;
     }
+
 
     </style>
 
@@ -37,20 +46,29 @@
     Christmas-Hat Web-App
 </h1>
 <p style="font-family:Arial;font-size:20px;color:white" align="center">
-    Open your web-camera to see yourself with a lovely christmas hat
+    Open your web-camera to see yourself with a christmas hat
 </p>
-<img id="camera" src="{{ url_for('static', filename='templates/signal.png') }}" style="width:50%">
+
+<img id="camera" src="" style="width:50%">
 <div>
     <button onclick="document.getElementById('camera').src='{{ url_for('video_feed') }}'">
         OPEN YOUR WEB-CAMERA
     </button>
 </div>
 
+<br>
+<p style="font-family:Arial;font-size:20px;color:white" align="center">
+    Or upload your selfie to add a christmas hat
+</p>
+
 <div style="margin-left=auto; margin-right=auto">
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file">
+    <img id="picture" src="" style="width:50%">
+    <form action="{{ url_for('upload_file') }}" method=post enctype=multipart/form-data>
+        <input type=file name=file>
+        <input type=submit value=UPLOAD onclick="document.getElementById('picture').src={{ url_for('upload_file') }}">
     </form>
 </div>
+
 
 
 

@@ -1,17 +1,41 @@
 # main.py
 
-from flask import Flask, render_template, Response, request
-from scipy import misc
+import os
+from flask import Flask, render_template, Response, request, url_for, send_from_directory
+from werkzeug.utils import secure_filename
+from bs4 import BeautifulSoup
 from camera import VideoCamera
 
+htmlfile = open('./templates/index.html', 'r')
+html = htmlfile.read()
+
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = './uploads'
 
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    f = request.files['file']
-    img = misc.imread(f)
-    return img
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/upload_file', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        file = request.files['file']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            pic = VideoCamera(False)
+            pic.get_pic(filename)
+            filename = 'hat_' + filename
+            file_url = url_for('uploaded_file', filename=filename)
+            # SOME BUGS HERE
+            return html + '<br><img src=' + file_url + '>'
+    return html
 
 @app.route('/')
 def index():
@@ -25,7 +49,7 @@ def gen(camera):
 
 @app.route('/video_feed')
 def video_feed():
-    return Response(gen(VideoCamera()),
+    return Response(gen(VideoCamera(True)),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
