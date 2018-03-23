@@ -6,21 +6,15 @@ import cv2
 import dlib
 
 
+w_h_ratio = 0.6
 hat_file = "./hats/02.png"
 landmarks_file = "./database/shape_predictor_68_face_landmarks.dat"
 
 class VideoCamera(object):
 
     # Constructor
-    def __init__(self, open_cam=True, visual=False):
-        if open_cam:
-            self.video = cv2.VideoCapture(1)
-            self.pic = False
-            # Using OpenCV to open web-camera
-            # Notice the index of camera
-        else:
-            self.pic = True
-
+    def __init__(self, visual=False):
+        self.video = cv2.VideoCapture(-1)
         # loading dlib's Hog Based face detector
         self.face_detector = dlib.get_frontal_face_detector()
         # loading dlib's 68 points-shape-predictor
@@ -31,10 +25,13 @@ class VideoCamera(object):
         self.length = 0
         self.position = None
 
-    # Destructor
-    def __del__(self):
-        if not self.pic:
-            self.video.release()
+    def open_camera(self):
+        self.video.open(0)
+        # Using OpenCV to open web-camera
+        # Notice the index of camera
+
+    def close_camera(self):
+        self.video.release()
 
     # Function for creating landmark coordinate list
     def land2coords(self, landmarks, dtype="int"):
@@ -157,6 +154,11 @@ class VideoCamera(object):
         cv2.imwrite('./uploads/hat_' + filename, img)
         return
 
+    def get_singal(self, filename):
+        image = cv2.imread(filename)
+        ret, jpg = cv2.imencode('.jpg', image)
+        return jpg.tobytes()
+
     # Function for getting head pose / position for hat, and resizing the hat with length
     def get_pose(self, frame, landmarks):
         # 18th and 25th points
@@ -171,7 +173,7 @@ class VideoCamera(object):
         (x3, y3) = landmarks[29]
         (x4, y4) = landmarks[30]
 
-        w, h = self.hat.shape[:2]
+        h, w = self.hat.shape[:2]
 
         # due to blanks in hat image, hat rectangle may change a little bit
         if self.visual:
@@ -192,13 +194,19 @@ class VideoCamera(object):
     # Function for adding christmas hat
     def add_hat(self, frame, hat, nw, nh):
 
-        w, h = frame.shape[:2]
+        h, w = frame.shape[:2]
         (x, y) = self.position
 
-        if self.visual:
-            cv2.rectangle(frame, (x, y), (x+nw, y-nh), (255, 0, 0), 3)
+        x_left = int(x-nw*0.5*w_h_ratio)
+        x_right = int(x+nw*(1+1.5*w_h_ratio))
+        y_bottom = int(y-nh*w_h_ratio)
+        y_top = int(y-nh*(1+3*w_h_ratio))
 
-        result = self.transparent_overlay(frame[x-nw:x, y:y+nh], hat, (0, 0), 1)
-        frame[x-nw:x, y:y+nh] = result
+        if self.visual:
+            cv2.rectangle(frame, (x_left, y_top), (x_right, y_bottom), (255, 0, 0), 3)
+
+        if y_top > 0 and x_left > 0 and y_bottom < h and x_right < w:
+            result = self.transparent_overlay(frame[y_top:y_bottom, x_left:x_right], hat, (0, 0), 1)
+            frame[y_top:y_bottom, x_left:x_right] = result
 
         return frame
